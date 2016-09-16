@@ -47,8 +47,8 @@ class LogStash::Inputs::Log4j2 < LogStash::Inputs::Base
 
     begin
       vendor_dir = ::File.expand_path("../../../vendor/", ::File.dirname(__FILE__))
-      require File.join(vendor_dir, "log4j-api-2.1.jar")
-      require File.join(vendor_dir, "log4j-core-2.1.jar")
+      require File.join(vendor_dir, "log4j-api-2.6.2.jar")
+      require File.join(vendor_dir, "log4j-core-2.6.2.jar")
       require File.join(vendor_dir, "disruptor-3.3.0.jar")
 
       Java::OrgApacheLoggingLog4jCoreImpl.const_get("Log4jLogEvent")
@@ -110,7 +110,13 @@ class LogStash::Inputs::Log4j2 < LogStash::Inputs::Base
 
         event["cstack"] = log4j_obj.getContextStack.to_a if log4j_obj.getContextStack
         output_queue << event
+
+        # Close ois directly to Prevent NullPointerExceptions.
+        # According to JRuby documentation:
+        # "Note that closing a stream will close its conversions."
+        ois.close
       end # loop do
+    rescue IOError
     rescue => e
       @logger.debug(e)
       @logger.debug("Closing connection", :client => socket.peer,
@@ -121,7 +127,7 @@ class LogStash::Inputs::Log4j2 < LogStash::Inputs::Base
     end # begin
   ensure
     begin
-      socket.close
+      ois.close
     rescue IOError
       pass
     end # begin
