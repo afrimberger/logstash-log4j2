@@ -111,10 +111,6 @@ class LogStash::Inputs::Log4j2 < LogStash::Inputs::Base
         event["cstack"] = log4j_obj.getContextStack.to_a if log4j_obj.getContextStack
         output_queue << event
 
-        # Close ois directly to Prevent NullPointerExceptions.
-        # According to JRuby documentation:
-        # "Note that closing a stream will close its conversions."
-        ois.close
       end # loop do
     rescue IOError
     rescue => e
@@ -127,7 +123,8 @@ class LogStash::Inputs::Log4j2 < LogStash::Inputs::Base
     end # begin
   ensure
     begin
-      ois.close
+      # Close socket directly to prevent NullPointer exceptions
+      socket.close
     rescue IOError
       pass
     end # begin
